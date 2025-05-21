@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Car Detection App</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; }
+    .drop-zone {
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      padding: 40px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .drop-zone.dragover { background-color: #eef; }
+    img { max-width: 100%; margin-top: 20px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
+  </style>
+</head>
+<body>
+
+  <h1>Detekcja Samochodów</h1>
+
+  <div class="drop-zone" id="drop-zone">
+    Przeciągnij zdjęcie tutaj lub kliknij, aby wybrać plik
+    <input type="file" id="file-input" accept="image/*" style="display:none;">
+  </div>
+
+  <p id="status"></p>
+  <p id="car-count"></p>
+  <img id="result-image" src="" alt="" />
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const status = document.getElementById('status');
+    const resultImg = document.getElementById('result-image');
+    const carCount = document.getElementById('car-count');
+
+    // Klik = otwórz plik
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Drag & drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      uploadImage(file);
+    });
+
+    // Input
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      uploadImage(file);
+    });
+
+    function uploadImage(file) {
+      if (!file) return;
+
+      status.textContent = 'Wysyłanie...';
+      carCount.textContent = '';
+      resultImg.src = '';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      fetch('/api/detect/', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.processed_image) {
+            resultImg.src = data.processed_image;
+            carCount.textContent = `Wykryto samochodów: ${data.car_count}`;
+            status.textContent = 'Gotowe!';
+          } else {
+            status.textContent = 'Błąd podczas przetwarzania';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          status.textContent = 'Błąd połączenia z serwerem';
+        });
+    }
+  </script>
+</body>
+</html>
